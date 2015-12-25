@@ -1,6 +1,6 @@
 #!/usr/bin/python -utt
 
-from sortedcontainers import SortedListWithKey, SortedDict
+from sortedcontainers import SortedList, SortedDict
 from operator import itemgetter, attrgetter
 
 
@@ -27,7 +27,7 @@ class IndexedList(object):
         if key is None:
             key = attrgetter(name)
 
-        self.indices[name] = SortedListWithKey(key=lambda pair: key(pair[1]), load=self.load)
+        self.indices[name] = SortedList(key=lambda pair: key(pair[1]), load=self.load)
 
     def append(self, item):
         pair = (self.pk, item)
@@ -93,16 +93,21 @@ class IndexedList(object):
 
     def pop_unique(self, index, key):
         item = self.uniques[index][self.hash(key)]
-        return self.remove(item[0])
+        return self.pop(item[0])
 
     def remove_slice(self, index, begin, end, include_last=True):
         self.pop_slice(index, begin, end, include_last)
 
-    def pop_outnumbers(self, index, leave):
-        positions = map(itemgetter(0), self.indices[index][:-leave])
-        removed = []
-        for position in positions:
-            removed.append(self.pop(position))
+    def pop_outnumbers(self, index, keep, keep_from_beginning=False):
+        """
+        Remove all elements but given `keep` amount from the end.
+        :param index: index name to sort by
+        :param keep: amount of elements to leave
+        :param keep_from_beginning: True if we need to leave `keep` first elements instead of `keep` last ones
+        """
+        target = self.indices[index][keep:] if keep_from_beginning else self.indices[index][:-keep]
+        positions = map(itemgetter(0), target)
+        removed = map(self.pop, positions)
         return removed
 
     def pop_slice(self, index, begin, end, include_last=True, limit=0):
@@ -116,9 +121,7 @@ class IndexedList(object):
         :return: removed object in list
         """
         items = map(itemgetter(0), self.get_slice_items(index, begin, end, include_last, limit))
-        removed = []
-        for item in items:
-            removed.append(self.pop(item))
+        removed = map(self.pop, items)
         return removed
 
     def pop_front(self, index):
@@ -218,9 +221,3 @@ class IndexedList(object):
                 yield el[1]
 
         return gen()
-
-
-class TestIdTime(object):
-    def __init__(self, id, time):
-        self.time = time
-        self.id = id
