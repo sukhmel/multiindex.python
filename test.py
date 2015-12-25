@@ -1,6 +1,12 @@
 import multiindex
 
 
+class TestIdTime(object):
+    def __init__(self, id, time):
+        self.time = time
+        self.id = id
+        
+
 def to_dict(obj, classkey=None):
     if isinstance(obj, dict):
         data = {}
